@@ -1,6 +1,13 @@
 # Collision-Detection-and-contactpoint-generation
-A simple c++ header-only single file that uses the Separating Axis Theorem (SAT) to detect collisions between two Oriented Bounding Boxes (OBB) and generate contact points for vertex-face collisions and edge-edge collisions.
-Features :
--> 3D.
--> Single header, easily expandable
--> uses GLM for mathematics
+
+A simple C++ header-only single file that uses the Separating Axis Theorem (SAT) to detect collisions between two Oriented Bounding Boxes (OBB) and generate contact points for vertex-face collisions and edge-edge collisions.
+
+## Features
+- **3D**: Handles 3D collision detection.
+- **Single header**: Easily expandable; just include the header.
+- **Uses GLM**: Utilizes the GLM library for mathematics.
+
+## Usage
+1. Include the header in your project.
+2. Create your OBBs (oriented bounding boxes).
+3. Use the provided functions to detect collisions and generate contact points.
