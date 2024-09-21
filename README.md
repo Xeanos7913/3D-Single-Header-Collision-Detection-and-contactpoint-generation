@@ -17,4 +17,4 @@ A simple C++ header-only single file that uses the Separating Axis Theorem (SAT)
 2. Expand the algorithm to handle general convex hulls (point clouds of vertices).
 3. Implement Contact Manifold generation.
 
-!https://github.com/Xeanos7913/3D-Single-Header-Collision-Detection-and-contactpoint-generation/blob/main/demo.gif
+!alt https://github.com/Xeanos7913/3D-Single-Header-Collision-Detection-and-contactpoint-generation/blob/main/demo.gif
