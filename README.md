@@ -13,9 +13,8 @@ A simple C++ header-only single file that uses the Separating Axis Theorem (SAT)
 3. Use the provided functions to detect collisions and generate contact points.
 
 ## Future plans
-1. Actually implement the edge-edge collision.
-2. Expand the algorithm to handle general convex hulls (point clouds of vertices).
-3. Implement Contact Manifold generation.
+1. Expand the algorithm to handle general convex hulls (point clouds of vertices).
+2. Implement Contact Manifold generation.
 
 ## Demo video
 https://youtu.be/EaaDjnE3eZ4
