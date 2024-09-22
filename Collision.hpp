@@ -88,71 +88,70 @@ float signedDistanceToPlane(const glm::vec3& point, const glm::vec3& planeOrigin
 
 // Checks if a point is inside the bounds of a face
 bool isPointInFaceBounds(const glm::vec3& point, const glm::vec3& faceCenter, const glm::vec3& u, const glm::vec3& v, float uHalf, float vHalf) {
+    auto U = glm::normalize(u);
+    auto V = glm::normalize(v);
+
     glm::vec3 rel = point - faceCenter;
-    float uCoord = glm::dot(rel, u);
-    float vCoord = glm::dot(rel, v);
-    return std::abs(uCoord) <= uHalf && std::abs(vCoord) <= vHalf;
+    float uCoord = glm::dot(rel, U);
+    float vCoord = glm::dot(rel, V);
+
+    bool withinBounds = std::abs(uCoord) <= uHalf && std::abs(vCoord) <= vHalf;
+    return withinBounds;
+}
+
+std::vector<glm::vec3> clipPolygonAgainstPlane(const std::vector<glm::vec3>& vertices, const glm::vec3& planePoint, const glm::vec3& planeNormal) {
+    std::vector<glm::vec3> clippedVertices;
+    int vertexCount = vertices.size();
+
+    for (int i = 0; i < vertexCount; ++i) {
+        glm::vec3 currentVertex = vertices[i];
+        glm::vec3 nextVertex = vertices[(i + 1) % vertexCount];
+
+        float distCurrent = signedDistanceToPlane(currentVertex, planePoint, planeNormal);
+        float distNext = signedDistanceToPlane(nextVertex, planePoint, planeNormal);
+
+        if (distCurrent >= 0.0f) {
+            clippedVertices.push_back(currentVertex);  // Current vertex is on the visible side
+        }
+
+        // If current and next vertex are on opposite sides, clip the edge
+        if (distCurrent * distNext < 0.0f) {
+            glm::vec3 intersectionPoint = currentVertex + (nextVertex - currentVertex) * (distCurrent / (distCurrent - distNext));
+            clippedVertices.push_back(intersectionPoint);
+        }
+    }
+
+    return clippedVertices;
 }
 
 // Vertex-face collision detection
 glm::vec3 vertexFaceCollision(const OBB& obb1, const OBB& obb2) {
     std::vector<glm::vec3> vertices1 = obb1.getVertices();
-    std::vector<glm::vec3> vertices2 = obb2.getVertices();
-
     glm::vec3 closestPoint = glm::vec3(0.0f);
     float closestDistance = std::numeric_limits<float>::max();
 
-    // Test OBB1 vertices against OBB2 faces
-    for (const auto& vertex : vertices1) {
-        for (int i = 0; i < 3; ++i) {
-            glm::vec3 faceNormal = obb2.axes[i];
-            glm::vec3 faceCenter = obb2.center;
-            glm::vec3 u = obb2.axes[(i + 1) % 3];
-            glm::vec3 v = obb2.axes[(i + 2) % 3];
+    for (int i = 0; i < 3; ++i) {
+        glm::vec3 faceNormal = obb2.axes[i];
+        glm::vec3 faceCenter = obb2.center;
+        glm::vec3 u = obb2.axes[(i + 1) % 3];
+        glm::vec3 v = obb2.axes[(i + 2) % 3];
 
-            // Compute the signed distance from the vertex to the face plane
-            float distance = signedDistanceToPlane(vertex, faceCenter, faceNormal);
+        // Clip the vertices of OBB1 against the OBB2 face plane
+        std::vector<glm::vec3> clippedVertices = clipPolygonAgainstPlane(vertices1, faceCenter, faceNormal);
 
-            // If the vertex is behind the face (penetrating the OBB)
-            if (distance < 0.0f) {
-                // Check if the vertex is inside the bounds of the face
-                if (isPointInFaceBounds(vertex, faceCenter, u, v, obb2.halfExtents[(i + 1) % 3], obb2.halfExtents[(i + 2) % 3])) {
-                    // If this vertex is closer than the previously recorded one, update
-                    if (std::abs(distance) < closestDistance) {
-                        closestDistance = std::abs(distance);
-                        closestPoint = vertex;
-                    }
+        // Check for the closest point after clipping
+        for (const auto& vertex : clippedVertices) {
+            if (isPointInFaceBounds(vertex, faceCenter, u, v, obb2.halfExtents[(i + 1) % 3], obb2.halfExtents[(i + 2) % 3])) {
+                float distance = glm::dot(vertex - faceCenter, faceNormal);
+                if (std::abs(distance) < closestDistance) {
+                    closestDistance = std::abs(distance);
+                    closestPoint = vertex;
                 }
             }
         }
     }
 
-    // Test OBB2 vertices against OBB1 faces
-    for (const auto& vertex : vertices2) {
-        for (int i = 0; i < 3; ++i) {
-            glm::vec3 faceNormal = obb1.axes[i];
-            glm::vec3 faceCenter = obb1.center;
-            glm::vec3 u = obb1.axes[(i + 1) % 3];
-            glm::vec3 v = obb1.axes[(i + 2) % 3];
-
-            // Compute the signed distance from the vertex to the face plane
-            float distance = signedDistanceToPlane(vertex, faceCenter, faceNormal);
-
-            // If the vertex is behind the face (penetrating the OBB)
-            if (distance < 0.0f) {
-                // Check if the vertex is inside the bounds of the face
-                if (isPointInFaceBounds(vertex, faceCenter, u, v, obb1.halfExtents[(i + 1) % 3], obb1.halfExtents[(i + 2) % 3])) {
-                    // If this vertex is closer than the previously recorded one, update
-                    if (std::abs(distance) < closestDistance) {
-                        closestDistance = std::abs(distance);
-                        closestPoint = vertex;
-                    }
-                }
-            }
-        }
-    }
-
-    return closestPoint; // Return the exact vertex-face contact point
+    return closestPoint;
 }
 
 // Compute the squared distance between two line segments
