@@ -20,10 +20,10 @@ A simple C++ header-only single file that uses the Separating Axis Theorem (SAT)
 https://youtu.be/EaaDjnE3eZ4
 
 ## Some Statements
--For rendering, I used my own game engine 'Calcium Engine', and it is not on github yet.
--Still working on perfecting collision detection for my Calcium Engine.
--In the near future, I might post Calcium Engine's source code on github, but it's very messy primarily because I'm not that good with C++.
--I reccommend using some existing rendering engine for visualization.
+- For rendering, I used my own game engine 'Calcium Engine', and it is not on github yet.
+- Still working on perfecting collision detection for my Calcium Engine.
+- In the near future, I might post Calcium Engine's source code on github, but it's very messy primarily because I'm not that good with C++.
+- I reccommend using some existing rendering engine for visualization.
 
 ## References
 
