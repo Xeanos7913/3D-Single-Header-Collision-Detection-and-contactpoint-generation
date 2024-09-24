@@ -3,11 +3,11 @@
 
 This is an exetremely basic version of the SAT collision-detection algorithm that I created in a week or so.
 I'm still constantly updating it, so expect instabilities with this program.
-Currently, the vertex-face collisions aren't the greatest at the moment, but edge-edge collisions are pretty much perfect.
+Currently, the vertex-face collisions aren't the greatest, but edge-edge collisions are pretty much perfect.
 Future plans are to fix the vertex-face collisions, create a Contact Manifold out of this, and make this script work with 
 any general convex hull.
 
-This work is listed under the MIT license, you may use to to do whatever you want, no credit is needed, although it is appreciated.
+This work is listed under the MIT license, you may use it to do whatever you want, no credit is needed, although it is appreciated.
 It does not come with any guarantee!!!
 */
 
