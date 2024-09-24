@@ -3,7 +3,7 @@
 
 This is an exetremely basic version of the SAT collision-detection algorithm that I created in a week or so.
 I'm still constantly updating it, so expect instabilities with this program.
-Currently, the vertex-face collisions aren't the greatest, but edge-edge collisions are pretty much perfect.
+Currently, the performance isn't the greatest, but the actual collision detection and contact point generation are pretty good.
 Future plans are to fix the vertex-face collisions, create a Contact Manifold out of this, and make this script work with 
 any general convex hull.
 
@@ -143,7 +143,7 @@ std::vector<glm::vec3> clipPolygonAgainstPlane(const std::vector<glm::vec3>& ver
 // Vertex-face collision detection
 glm::vec3 vertexFaceCollision(const OBB& vertexOBB, const OBB& faceOBB, float& smallestPenetrationDepth) {
     std::vector<glm::vec3> vertices = vertexOBB.getVertices();
-    glm::vec3 closestPoint = glm::vec3(0.0f);
+    glm::vec3 closestVertex = glm::vec3(0.0f);
     smallestPenetrationDepth = std::numeric_limits<float>::max();
 
     // Iterate through the face OBB's axes (representing the three face normals)
@@ -155,22 +155,21 @@ glm::vec3 vertexFaceCollision(const OBB& vertexOBB, const OBB& faceOBB, float& s
 
         // Check each vertex from the vertex OBB
         for (const auto& vertex : vertices) {
-            // Project the vertex onto the face plane
-            glm::vec3 projectedPoint = projectPointOntoPlane(vertex, faceCenter, faceNormal);
+            // Calculate penetration depth (distance from the vertex to the face plane)
+            float penetrationDepth = std::abs(signedDistanceToPlane(vertex, faceCenter, faceNormal));
 
-            // Check if the projected point is within the face bounds (defined by u and v axes)
-            if (isPointInFaceBounds(projectedPoint, faceCenter, u, v, faceOBB.halfExtents[(i + 1) % 3], faceOBB.halfExtents[(i + 2) % 3])) {
-                // Calculate the penetration depth (distance from the vertex to the face plane)
-                float penetrationDepth = std::abs(signedDistanceToPlane(vertex, faceCenter, faceNormal));
+            // Check if the vertex is within the face bounds
+            if (isPointInFaceBounds(vertex, faceCenter, u, v, faceOBB.halfExtents[(i + 1) % 3], faceOBB.halfExtents[(i + 2) % 3])) {
+                // Track the vertex with the smallest penetration depth
                 if (penetrationDepth < smallestPenetrationDepth) {
                     smallestPenetrationDepth = penetrationDepth;
-                    closestPoint = projectedPoint;  // Use the projected point as the contact point
+                    closestVertex = vertex;  // Track the closest vertex
                 }
             }
         }
     }
 
-    return closestPoint;
+    return closestVertex;  // Return the closest vertex
 }
 
 // Compute the squared distance between two line segments
