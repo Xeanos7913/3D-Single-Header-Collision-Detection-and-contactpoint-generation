@@ -1,3 +1,17 @@
+/*
+        SAT algorithm Implementation by XEANOS#7913
+
+This is an exetremely basic version of the SAT collision-detection algorithm that I created in a week or so.
+I'm still constantly updating it, so expect instabilities with this program.
+Currently, the vertex-face collisions aren't the greatest at the moment, but edge-edge collisions are pretty much perfect.
+Future plans are to fix the vertex-face collisions, create a Contact Manifold out of this, and make this script work with 
+any general convex hull.
+
+This work is listed under the MIT license, you may use to to do whatever you want, no credit is needed, although it is appreciated.
+It does not come with any guarantee!!!
+*/
+
+
 #include <glm.hpp>
 #include <gtc/matrix_transform.hpp>
 #include <gtx/string_cast.hpp>
@@ -75,16 +89,18 @@ struct CollisionResult {
     std::string collisionType;
 };
 
-// Helper function to project a point onto a plane
-glm::vec3 projectPointOntoPlane(const glm::vec3& point, const glm::vec3& planeOrigin, const glm::vec3& planeNormal) {
-    float dist = glm::dot(point - planeOrigin, planeNormal);
-    return point - dist * planeNormal;
-}
-
 // Compute the signed distance from a point to a plane
 float signedDistanceToPlane(const glm::vec3& point, const glm::vec3& planeOrigin, const glm::vec3& planeNormal) {
     return glm::dot(point - planeOrigin, planeNormal);
 }
+
+// Helper function to project a point onto a plane
+glm::vec3 projectPointOntoPlane(const glm::vec3& point, const glm::vec3& faceCenter, const glm::vec3& faceNormal) {
+    float distanceToPlane = signedDistanceToPlane(point, faceCenter, faceNormal);
+    return point - distanceToPlane * faceNormal;
+}
+
+
 
 // Checks if a point is inside the bounds of a face
 bool isPointInFaceBounds(const glm::vec3& point, const glm::vec3& faceCenter, const glm::vec3& u, const glm::vec3& v, float uHalf, float vHalf) {
@@ -125,27 +141,30 @@ std::vector<glm::vec3> clipPolygonAgainstPlane(const std::vector<glm::vec3>& ver
 }
 
 // Vertex-face collision detection
-glm::vec3 vertexFaceCollision(const OBB& obb1, const OBB& obb2) {
-    std::vector<glm::vec3> vertices1 = obb1.getVertices();
+glm::vec3 vertexFaceCollision(const OBB& vertexOBB, const OBB& faceOBB, float& smallestPenetrationDepth) {
+    std::vector<glm::vec3> vertices = vertexOBB.getVertices();
     glm::vec3 closestPoint = glm::vec3(0.0f);
-    float closestDistance = std::numeric_limits<float>::max();
+    smallestPenetrationDepth = std::numeric_limits<float>::max();
 
+    // Iterate through the face OBB's axes (representing the three face normals)
     for (int i = 0; i < 3; ++i) {
-        glm::vec3 faceNormal = obb2.axes[i];
-        glm::vec3 faceCenter = obb2.center;
-        glm::vec3 u = obb2.axes[(i + 1) % 3];
-        glm::vec3 v = obb2.axes[(i + 2) % 3];
+        glm::vec3 faceNormal = faceOBB.axes[i];
+        glm::vec3 faceCenter = faceOBB.center;
+        glm::vec3 u = faceOBB.axes[(i + 1) % 3];
+        glm::vec3 v = faceOBB.axes[(i + 2) % 3];
 
-        // Clip the vertices of OBB1 against the OBB2 face plane
-        std::vector<glm::vec3> clippedVertices = clipPolygonAgainstPlane(vertices1, faceCenter, faceNormal);
+        // Check each vertex from the vertex OBB
+        for (const auto& vertex : vertices) {
+            // Project the vertex onto the face plane
+            glm::vec3 projectedPoint = projectPointOntoPlane(vertex, faceCenter, faceNormal);
 
-        // Check for the closest point after clipping
-        for (const auto& vertex : clippedVertices) {
-            if (isPointInFaceBounds(vertex, faceCenter, u, v, obb2.halfExtents[(i + 1) % 3], obb2.halfExtents[(i + 2) % 3])) {
-                float distance = glm::dot(vertex - faceCenter, faceNormal);
-                if (std::abs(distance) < closestDistance) {
-                    closestDistance = std::abs(distance);
-                    closestPoint = vertex;
+            // Check if the projected point is within the face bounds (defined by u and v axes)
+            if (isPointInFaceBounds(projectedPoint, faceCenter, u, v, faceOBB.halfExtents[(i + 1) % 3], faceOBB.halfExtents[(i + 2) % 3])) {
+                // Calculate the penetration depth (distance from the vertex to the face plane)
+                float penetrationDepth = std::abs(signedDistanceToPlane(vertex, faceCenter, faceNormal));
+                if (penetrationDepth < smallestPenetrationDepth) {
+                    smallestPenetrationDepth = penetrationDepth;
+                    closestPoint = projectedPoint;  // Use the projected point as the contact point
                 }
             }
         }
@@ -303,9 +322,15 @@ bool overlapOnAxis(const OBB& obb1, const OBB& obb2, const glm::vec3& axis, floa
         return false; // No overlap
     }
 
-    // Calculate the penetration depth
+    // Calculate the penetration depth and preserve the sign of the axis
     float overlap = std::min(max1, max2) - std::max(min1, min2);
     penetrationDepth = overlap;
+
+    // To preserve the direction of the collision normal, check which side the collision is happening on
+    if (min1 < min2) {
+        penetrationDepth *= -1;  // The collision is happening on the negative side of the axis
+    }
+
     return true;
 }
 
@@ -347,23 +372,34 @@ bool SATCollision(const OBB& obb1, const OBB& obb2, CollisionResult& result) {
         }
 
         // Track the axis with the smallest penetration depth
-        if (penetrationDepth < minPenetrationDepth) {
+        if (std::abs(penetrationDepth) < std::abs(minPenetrationDepth)) {
             minPenetrationDepth = penetrationDepth;
-            smallestAxis = axis;
+            smallestAxis = axis * glm::sign(penetrationDepth); // Preserve the sign of the axis
             axisType = i; // Record which axis caused the collision
         }
     }
 
     // If no separating axis is found, there is a collision
     result.collisionDetected = true;
-    result.penetrationDepth = minPenetrationDepth;
+    result.penetrationDepth = std::abs(minPenetrationDepth); // Use the absolute value for penetration depth
     result.collisionNormal = smallestAxis;
 
     // Check which type of axis caused the collision
     if (axisType >= 0 && axisType <= 5) {
-        // Vertex-face collision
+        // Vertex-face collision (check both OBB1 vs OBB2 and OBB2 vs OBB1)
         result.collisionType = "vertex-face";
-        result.contactPoint = vertexFaceCollision(obb1, obb2);
+
+        float distance1, distance2;
+        glm::vec3 contactPoint1 = vertexFaceCollision(obb1, obb2, distance1);
+        glm::vec3 contactPoint2 = vertexFaceCollision(obb2, obb1, distance2);
+
+        // Choose the contact point with the smallest distance to the face and lying on the collision axis
+        if (distance1 < distance2) {
+            result.contactPoint = contactPoint1;
+        }
+        else {
+            result.contactPoint = contactPoint2;
+        }
     }
     else if (axisType >= 6 && axisType <= 14) {
         // Edge-edge collision
