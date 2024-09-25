@@ -14,7 +14,7 @@ A simple C++ header-only single file that uses the Separating Axis Theorem (SAT)
 
 ## Future plans
 1. Expand the algorithm to handle general convex hulls (point clouds of vertices).
-2. Implement Contact Manifold generation.
+2. Implement one-shot Contact Manifold generation.
 
 ## Demo videos
 - **Contact Point Generation:** [https://youtu.be/EaaDjnE3eZ4](https://youtu.be/6cStV7SiHKU)
