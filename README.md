@@ -30,4 +30,4 @@ A simple C++ header-only single file that uses the Separating Axis Theorem (SAT)
 
 - **SAT Algorithm** -> https://dyn4j.org/2010/01/sat/
 - **Contact Point generation for edge-edge collisions** -> https://www.geeksforgeeks.org/shortest-distance-between-two-lines-in-3d-space-class-12-maths/
-- **Contact Manifold generation (not yet implemented)** -> https://research.ncl.ac.uk/game/mastersdegree/gametechnologies/previousinformation/physics5collisionmanifolds/2017%20Tutorial%205%20-%20Collision%20Manifolds.pdf
+- **Contact Manifold generation** -> https://research.ncl.ac.uk/game/mastersdegree/gametechnologies/previousinformation/physics5collisionmanifolds/2017%20Tutorial%205%20-%20Collision%20Manifolds.pdf
