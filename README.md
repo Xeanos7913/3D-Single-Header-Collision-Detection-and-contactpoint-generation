@@ -16,8 +16,9 @@ A simple C++ header-only single file that uses the Separating Axis Theorem (SAT)
 1. Expand the algorithm to handle general convex hulls (point clouds of vertices).
 2. Implement Contact Manifold generation.
 
-## Demo video
-[https://youtu.be/EaaDjnE3eZ4](https://youtu.be/6cStV7SiHKU)
+## Demo videos
+- **Contact Point Generation:** [https://youtu.be/EaaDjnE3eZ4](https://youtu.be/6cStV7SiHKU)
+- **Physics solver:** https://youtu.be/lEXJKrqvyLk
 
 ## Some Statements
 - For rendering, I used my own game engine 'Calcium Engine', and it is not on github yet.
