@@ -4,13 +4,15 @@
 This is an exetremely basic version of the SAT collision-detection algorithm that I created in a week or so.
 I'm still constantly updating it, so expect instabilities with this program.
 Currently, the performance isn't the greatest, but the actual collision detection and contact point generation are pretty good.
-Future plans are to fix the vertex-face collisions, create a Contact Manifold out of this, and make this script work with 
-any general convex hull.
+Future plans are to make this script work with any general convex hull. Also, while the contact manifold generated here is "usable",
+it's still not quite 'stable'. This uses the incremental approach to contact manifold generation. My future plan is to make it a one-shot one.
 
 This work is listed under the MIT license, you may use it to do whatever you want, no credit is needed, although it is appreciated.
 It does not come with any guarantee!!!
 */
 
+
+#pragma once
 
 #include <glm.hpp>
 #include <gtc/matrix_transform.hpp>
@@ -113,31 +115,6 @@ bool isPointInFaceBounds(const glm::vec3& point, const glm::vec3& faceCenter, co
 
     bool withinBounds = std::abs(uCoord) <= uHalf && std::abs(vCoord) <= vHalf;
     return withinBounds;
-}
-
-std::vector<glm::vec3> clipPolygonAgainstPlane(const std::vector<glm::vec3>& vertices, const glm::vec3& planePoint, const glm::vec3& planeNormal) {
-    std::vector<glm::vec3> clippedVertices;
-    int vertexCount = vertices.size();
-
-    for (int i = 0; i < vertexCount; ++i) {
-        glm::vec3 currentVertex = vertices[i];
-        glm::vec3 nextVertex = vertices[(i + 1) % vertexCount];
-
-        float distCurrent = signedDistanceToPlane(currentVertex, planePoint, planeNormal);
-        float distNext = signedDistanceToPlane(nextVertex, planePoint, planeNormal);
-
-        if (distCurrent >= 0.0f) {
-            clippedVertices.push_back(currentVertex);  // Current vertex is on the visible side
-        }
-
-        // If current and next vertex are on opposite sides, clip the edge
-        if (distCurrent * distNext < 0.0f) {
-            glm::vec3 intersectionPoint = currentVertex + (nextVertex - currentVertex) * (distCurrent / (distCurrent - distNext));
-            clippedVertices.push_back(intersectionPoint);
-        }
-    }
-
-    return clippedVertices;
 }
 
 // Vertex-face collision detection
@@ -408,3 +385,77 @@ bool SATCollision(const OBB& obb1, const OBB& obb2, CollisionResult& result) {
 
     return true; // Collision detected
 }
+
+//Contact Point storage struct
+struct ContactPoint {
+    glm::vec3 position;
+    glm::vec3 normal;
+    float penetrationDepth;
+};
+
+struct ContactManifold {
+    std::vector<ContactPoint> contacts;
+    const int maxContacts = 4; // Limit the number of contact points
+
+    // Assignment operator
+    ContactManifold& operator=(const ContactManifold& other) {
+        if (this != &other) {
+            contacts = other.contacts;
+        }
+        return *this;
+    }
+
+    // Add a new contact point to the manifold
+    void addContact(const glm::vec3& position, const glm::vec3& normal, float penetrationDepth) {
+        // Check if the contact point is similar to any existing point
+        for (const auto& contact : contacts) {
+            if (glm::distance(contact.position, position) < 0.01f) {
+                return; // Ignore very close contact points
+            }
+        }
+
+        // If manifold is full, replace the least important contact point
+        if (contacts.size() < maxContacts) {
+            contacts.push_back({ position, normal, penetrationDepth });
+        }
+        else {
+            int minIndex = 0;
+            float minPenetration = contacts[0].penetrationDepth;
+            for (int i = 1; i < contacts.size(); ++i) {
+                if (contacts[i].penetrationDepth < minPenetration) {
+                    minIndex = i;
+                    minPenetration = contacts[i].penetrationDepth;
+                }
+            }
+            contacts[minIndex] = { position, normal, penetrationDepth };
+        }
+
+        // Debug message to see if the contact is added correctly
+        std::cout << "Added Contact: \n";
+        std::cout << "  Position: " << glm::to_string(position) << "\n";
+        std::cout << "  Normal: " << glm::to_string(normal) << "\n";
+        std::cout << "  Penetration Depth: " << penetrationDepth << "\n";
+    }
+
+    // Debug method to print all contacts
+    void debugPrintManifold() const {
+        std::cout << "Contact Manifold (" << contacts.size() << " contacts):\n";
+        for (const auto& contact : contacts) {
+            std::cout << "  Position: " << glm::to_string(contact.position) << "\n";
+            std::cout << "  Normal: " << glm::to_string(contact.normal) << "\n";
+            std::cout << "  Penetration Depth: " << contact.penetrationDepth << "\n";
+        }
+    }
+
+    // Clear the manifold for a new frame
+    void clear() {
+        contacts.clear();
+    }
+
+    // Persist valid contacts from the previous frame
+    void persistContacts(const ContactManifold& previousManifold) {
+        for (const auto& contact : previousManifold.contacts) {
+            addContact(contact.position, contact.normal, contact.penetrationDepth);
+        }
+    }
+};
